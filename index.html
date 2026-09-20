@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CRM Asesores · Naturaleza Abierta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --verde-950:#132018;
+    --verde-800:#1F3D2B;
+    --verde-600:#3D7A52;
+    --verde-500:#4C9161;
+    --verde-100:#E7F1EA;
+    --crema:#FBF9F4;
+    --papel:#FFFFFF;
+    --terracota:#C9683B;
+    --terracota-100:#F7E4D9;
+    --texto:#20261F;
+    --texto-suave:#5B6459;
+    --linea:#DDE4DA;
+    --radio:10px;
+    --sombra: 0 1px 2px rgba(19,32,24,.06), 0 8px 24px -12px rgba(19,32,24,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+    background:var(--crema);
+    color:var(--texto);
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --crema:#12160F;
+      --papel:#1A211A;
+      --texto:#EDF1EB;
+      --texto-suave:#9AA595;
+      --linea:#2A3327;
+      --verde-100:#1E2E23;
+      --terracota-100:#3A2A20;
+    }
+  }
+  :root[data-theme="dark"]{
+    --crema:#12160F;
+    --papel:#1A211A;
+    --texto:#EDF1EB;
+    --texto-suave:#9AA595;
+    --linea:#2A3327;
+    --verde-100:#1E2E23;
+    --terracota-100:#3A2A20;
+  }
+  button{font-family:inherit;}
+  ::selection{background:var(--verde-100);}
+
+  /* ---------- Login ---------- */
+  #login{
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:380px;
+    background:var(--papel);
+    border:1px solid var(--linea);
+    border-radius:16px;
+    padding:36px 28px;
+    box-shadow:var(--sombra);
+    text-align:center;
+  }
+  .login-card img{width:64px; height:64px; object-fit:contain; margin-bottom:14px;}
+  .login-card h1{font-size:1.15rem; font-weight:700; margin:0 0 4px; color:var(--verde-800);}
+  .login-card p.sub{color:var(--texto-suave); font-size:.88rem; margin:0 0 26px;}
+  .campo{text-align:left; margin-bottom:14px;}
+  .campo label{display:block; font-size:.78rem; font-weight:600; color:var(--texto-suave); margin-bottom:6px;}
+  .campo input{
+    width:100%; padding:11px 13px; border-radius:9px;
+    border:1px solid var(--linea); font-size:.95rem;
+    background:var(--crema); color:var(--texto);
+  }
+  .campo input:focus{outline:2px solid var(--verde-500); outline-offset:1px;}
+  .btn-primario{
+    width:100%; padding:12px; border:none; border-radius:9px;
+    background:var(--verde-600); color:#fff; font-weight:700; font-size:.95rem;
+    cursor:pointer; margin-top:6px;
+  }
+  .btn-primario:disabled{opacity:.6; cursor:default;}
+  .btn-primario:hover:not(:disabled){background:var(--verde-800);}
+  .error-msg{
+    background:var(--terracota-100); color:var(--terracota);
+    border-radius:8px; padding:9px 12px; font-size:.82rem;
+    margin-top:14px; text-align:left;
+  }
+
+  /* ---------- App shell ---------- */
+  #app{display:none; height:100vh; height:100dvh; overflow:hidden;}
+  .shell{display:flex; height:100%;}
+
+  .nav{
+    width:64px; flex-shrink:0;
+    background:var(--verde-950); color:#fff;
+    display:flex; flex-direction:column; align-items:center;
+    padding:16px 0; gap:18px;
+  }
+  .nav img{width:34px; height:34px; object-fit:contain;}
+  .nav .yo{
+    width:34px; height:34px; border-radius:50%; background:var(--verde-600);
+    color:#fff; font-weight:700; font-size:.8rem;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:auto; cursor:pointer; border:none;
+  }
+
+  .lista-col{
+    width:320px; flex-shrink:0;
+    border-right:1px solid var(--linea);
+    background:var(--papel);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .lista-head{padding:16px 16px 10px; border-bottom:1px solid var(--linea);}
+  .lista-head h2{margin:0 0 12px; font-size:1.05rem;}
+  .tabs{display:flex; gap:4px; background:var(--verde-100); padding:3px; border-radius:9px;}
+  .tabs button{
+    flex:1; border:none; background:transparent; padding:7px 4px;
+    border-radius:7px; font-size:.76rem; font-weight:600; color:var(--texto-suave);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .tabs button.activo{background:var(--papel); color:var(--verde-800); box-shadow:var(--sombra);}
+  .badge{
+    background:var(--terracota); color:#fff; font-size:.65rem; font-weight:700;
+    border-radius:99px; min-width:16px; height:16px; padding:0 4px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .lista-scroll{flex:1; overflow-y:auto;}
+  .caso-item{
+    padding:13px 16px; border-bottom:1px solid var(--linea);
+    cursor:pointer; display:block; width:100%; text-align:left; background:none; border-left:3px solid transparent;
+  }
+  .caso-item:hover{background:var(--verde-100);}
+  .caso-item.activo{background:var(--verde-100); border-left-color:var(--verde-600);}
+  .caso-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .caso-tel{font-weight:700; font-size:.88rem;}
+  .caso-hora{font-size:.7rem; color:var(--texto-suave); flex-shrink:0;}
+  .caso-motivo{font-size:.8rem; color:var(--texto-suave); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .caso-urgente .caso-hora{color:var(--terracota); font-weight:700;}
+  .vacio-lista{padding:32px 20px; text-align:center; color:var(--texto-suave); font-size:.85rem;}
+
+  .detalle-col{flex:1; display:flex; flex-direction:column; background:var(--crema); min-width:0;}
+  .sin-seleccion{flex:1; display:flex; align-items:center; justify-content:center; color:var(--texto-suave); font-size:.9rem; text-align:center; padding:20px;}
+
+  .detalle-head{
+    padding:14px 20px; background:var(--papel); border-bottom:1px solid var(--linea);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .detalle-head h3{margin:0; font-size:1.02rem;}
+  .detalle-head .estado-pill{
+    font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:99px;
+    background:var(--verde-100); color:var(--verde-800); margin-left:8px;
+  }
+  .acciones{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn-sec{
+    border:1px solid var(--linea); background:var(--papel); color:var(--texto);
+    padding:7px 12px; border-radius:8px; font-size:.78rem; font-weight:600; cursor:pointer;
+  }
+  .btn-sec:hover{background:var(--verde-100); border-color:var(--verde-500);}
+  .btn-tomar{background:var(--verde-600); color:#fff; border-color:var(--verde-600);}
+  .btn-tomar:hover{background:var(--verde-800);}
+  .btn-cerrar{color:var(--terracota); border-color:var(--terracota-100);}
+  .btn-cerrar:hover{background:var(--terracota-100);}
+
+  .cuerpo{flex:1; display:flex; min-height:0;}
+  .chat-col{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .chat-scroll{flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:10px;}
+  .msg{max-width:72%; padding:9px 13px; border-radius:14px; font-size:.88rem; line-height:1.4; white-space:pre-wrap; word-wrap:break-word;}
+  .msg-cliente{background:var(--papel); border:1px solid var(--linea); align-self:flex-start; border-bottom-left-radius:4px;}
+  .msg-asesor{background:var(--verde-600); color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
+  .msg-valentina{background:var(--verde-100); color:var(--verde-800); align-self:flex-start; border-bottom-left-radius:4px;}
+  .msg-sistema{align-self:center; color:var(--texto-suave); font-size:.72rem; font-style:italic; background:none; max-width:90%; text-align:center;}
+  .msg-hora{display:block; font-size:.62rem; opacity:.7; margin-top:3px;}
+
+  .compositor{
+    padding:12px 16px; background:var(--papel); border-top:1px solid var(--linea);
+    display:flex; gap:8px; align-items:flex-end;
+  }
+  .compositor textarea{
+    flex:1; resize:none; border:1px solid var(--linea); border-radius:10px;
+    padding:10px 12px; font-family:inherit; font-size:.9rem; max-height:110px; background:var(--crema); color:var(--texto);
+  }
+  .compositor textarea:focus{outline:2px solid var(--verde-500); outline-offset:1px;}
+  .btn-enviar{
+    background:var(--verde-600); color:#fff; border:none; border-radius:10px;
+    width:42px; height:42px; flex-shrink:0; cursor:pointer; font-size:1.05rem;
+  }
+  .btn-enviar:disabled{opacity:.5;}
+  .compositor-aviso{font-size:.72rem; color:var(--texto-suave); padding:0 16px 10px; background:var(--papel);}
+
+  .notas-col{
+    width:260px; flex-shrink:0; border-left:1px solid var(--linea);
+    background:var(--papel); display:flex; flex-direction:column;
+  }
+  .notas-head{padding:14px 16px 8px; font-size:.8rem; font-weight:700; color:var(--texto-suave); border-bottom:1px solid var(--linea);}
+  .notas-scroll{flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px;}
+  .nota{background:var(--verde-100); border-radius:9px; padding:8px 10px; font-size:.8rem;}
+  .nota-hora{display:block; font-size:.65rem; color:var(--texto-suave); margin-top:4px;}
+  .nota-form{padding:10px 14px; border-top:1px solid var(--linea); display:flex; gap:6px;}
+  .nota-form input{flex:1; border:1px solid var(--linea); border-radius:8px; padding:8px 10px; font-size:.8rem; background:var(--crema); color:var(--texto);}
+  .nota-form button{border:none; background:var(--verde-600); color:#fff; border-radius:8px; padding:0 12px; font-size:.8rem; font-weight:700; cursor:pointer;}
+
+  @media (max-width: 900px){
+    .notas-col{display:none;}
+  }
+  @media (max-width: 720px){
+    .lista-col{width:100%; border-right:none;}
+    .detalle-col{display:none;}
+    body.viendo-caso .lista-col{display:none;}
+    body.viendo-caso .detalle-col{display:flex;}
+    .btn-volver{display:inline-flex !important;}
+  }
+  .btn-volver{display:none; border:none; background:none; font-size:1.1rem; cursor:pointer; padding:0 8px 0 0; color:var(--verde-800);}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <img src="https://www.naturalezaabierta.com/wp-content/uploads/2026/03/cropped-cropped-solo-logo-WEB2.png" alt="Naturaleza Abierta">
+    <h1>CRM de asesores</h1>
+    <p class="sub">Entra con tu cuenta para atender los casos que Valentina no pudo resolver.</p>
+    <form id="form-login">
+      <div class="campo">
+        <label>Correo</label>
+        <input type="email" id="login-email" required autocomplete="username">
+      </div>
+      <div class="campo">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-primario" id="btn-login">Entrar</button>
+    </form>
+    <div id="login-error" class="error-msg" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="shell">
+    <nav class="nav">
+      <img src="https://www.naturalezaabierta.com/wp-content/uploads/2026/03/cropped-cropped-solo-logo-WEB2.png" alt="">
+      <button class="yo" id="btn-salir" title="Cerrar sesión">--</button>
+    </nav>
+
+    <div class="lista-col">
+      <div class="lista-head">
+        <h2>Casos</h2>
+        <div class="tabs">
+          <button data-tab="nuevo" class="activo">Nuevos <span class="badge" id="cnt-nuevo" style="display:none;">0</span></button>
+          <button data-tab="mios">Míos <span class="badge" id="cnt-mios" style="display:none;">0</span></button>
+          <button data-tab="cerrados">Cerrados</button>
+        </div>
+      </div>
+      <div class="lista-scroll" id="lista-scroll">
+        <div class="vacio-lista">Cargando…</div>
+      </div>
+    </div>
+
+    <div class="detalle-col">
+      <div class="sin-seleccion" id="sin-seleccion">Elige un caso de la lista para ver la conversación.</div>
+
+      <div id="detalle" style="display:none; flex:1; flex-direction:column; min-height:0;">
+        <div class="detalle-head">
+          <div style="display:flex; align-items:center; min-width:0;">
+            <button class="btn-volver" id="btn-volver">‹</button>
+            <div>
+              <h3 id="det-telefono">—</h3>
+              <span id="det-estado" class="estado-pill">—</span>
+            </div>
+          </div>
+          <div class="acciones" id="det-acciones"></div>
+        </div>
+
+        <div class="cuerpo">
+          <div class="chat-col">
+            <div class="chat-scroll" id="chat-scroll"></div>
+            <div class="compositor-aviso" id="aviso-solo-lectura" style="display:none;">Toma este caso para poder responder.</div>
+            <div class="compositor" id="compositor">
+              <textarea id="txt-mensaje" rows="1" placeholder="Escribe tu respuesta…"></textarea>
+              <button class="btn-enviar" id="btn-enviar" title="Enviar">➤</button>
+            </div>
+          </div>
+
+          <div class="notas-col">
+            <div class="notas-head">Notas internas</div>
+            <div class="notas-scroll" id="notas-scroll"></div>
+            <div class="nota-form">
+              <input type="text" id="txt-nota" placeholder="Agregar nota…">
+              <button id="btn-nota">Añadir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://tgvcvnhrwswuxgjbpvwq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRndmN2bmhyd3N3dXhnamJwdndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMzQ3NjgsImV4cCI6MjEwNDkxMDc2OH0.9_n-EIfyxn6rSWbELMZfxnRVkBuQd1ZqKa-Z61mAHfA';
+const WEBHOOK_ENVIAR_MENSAJE = 'https://hook.us2.make.com/muj9mmxn67vpl5gwhu595u98h20j241q';
+const POLL_MS = 6000;
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let sesion = null;      // { id, email, nombre, apellido }
+let tabActual = 'nuevo';
+let casos = [];
+let casoActivoId = null;
+let mensajesCache = [];
+let pollTimer = null;
+
+// ---------- utilidades ----------
+function hora(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('es-VE', {hour:'2-digit', minute:'2-digit'});
+}
+function haceTiempo(iso){
+  const min = Math.floor((Date.now() - new Date(iso).getTime())/60000);
+  if(min < 1) return 'ahora';
+  if(min < 60) return `hace ${min} min`;
+  const h = Math.floor(min/60);
+  if(h < 24) return `hace ${h} h`;
+  return `hace ${Math.floor(h/24)} d`;
+}
+function iniciales(nombre, apellido){
+  return ((nombre||'?')[0] + (apellido||'')[0]).toUpperCase();
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- login ----------
+document.getElementById('form-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('btn-login');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if(error){
+    err.textContent = 'Correo o contraseña incorrectos.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Entrar';
+    return;
+  }
+
+  const { data: asesorRow, error: errAsesor } = await sb
+    .from('asesores').select('*').eq('id', data.user.id).maybeSingle();
+
+  if(errAsesor || !asesorRow || !asesorRow.activo){
+    err.textContent = 'Esta cuenta no está registrada como asesor activo. Pide al administrador que te agregue.';
+    err.style.display = 'block';
+    await sb.auth.signOut();
+    btn.disabled = false; btn.textContent = 'Entrar';
+    return;
+  }
+
+  sesion = asesorRow;
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('btn-salir').textContent = iniciales(sesion.nombre, sesion.apellido);
+  document.getElementById('btn-salir').title = `${sesion.nombre} ${sesion.apellido||''} — cerrar sesión`;
+  iniciarApp();
+});
+
+document.getElementById('btn-salir').addEventListener('click', async () => {
+  if(!confirm('¿Cerrar sesión?')) return;
+  clearInterval(pollTimer);
+  await sb.auth.signOut();
+  location.reload();
+});
+
+// ---------- tabs ----------
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    tabActual = btn.dataset.tab;
+    renderLista();
+  });
+});
+
+document.getElementById('btn-volver').addEventListener('click', () => {
+  document.body.classList.remove('viendo-caso');
+});
+
+// ---------- carga de casos ----------
+async function cargarCasos(){
+  const { data, error } = await sb
+    .from('casos_atencion')
+    .select('*')
+    .order('creado_en', { ascending: false })
+    .limit(200);
+  if(error){ console.error(error); return; }
+  casos = data || [];
+  renderLista();
+  if(casoActivoId) refrescarDetalleSiActivo();
+}
+
+function casosPorTab(tab){
+  if(tab === 'nuevo') return casos.filter(c => !c.asesor_id && c.estado !== 'Cerrado');
+  if(tab === 'mios') return casos.filter(c => c.asesor_id === sesion.id && c.estado !== 'Cerrado');
+  return casos.filter(c => c.estado === 'Cerrado');
+}
+
+function renderLista(){
+  const cont = document.getElementById('lista-scroll');
+  const items = casosPorTab(tabActual);
+
+  document.getElementById('cnt-nuevo').textContent = casosPorTab('nuevo').length;
+  document.getElementById('cnt-nuevo').style.display = casosPorTab('nuevo').length ? 'inline-flex' : 'none';
+  document.getElementById('cnt-mios').textContent = casosPorTab('mios').length;
+  document.getElementById('cnt-mios').style.display = casosPorTab('mios').length ? 'inline-flex' : 'none';
+
+  if(!items.length){
+    const msg = tabActual === 'nuevo' ? 'No hay casos nuevos por ahora.'
+      : tabActual === 'mios' ? 'No tienes casos abiertos.'
+      : 'Todavía no hay casos cerrados.';
+    cont.innerHTML = `<div class="vacio-lista">${msg}</div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(c => {
+    const urgente = tabActual === 'nuevo' && (Date.now() - new Date(c.creado_en).getTime()) > 10*60000;
+    return `
+      <button class="caso-item ${c.id===casoActivoId?'activo':''} ${urgente?'caso-urgente':''}" data-id="${c.id}">
+        <div class="caso-top">
+          <span class="caso-tel">${escapeHtml(c.cliente_telefono)}</span>
+          <span class="caso-hora">${haceTiempo(c.creado_en)}</span>
+        </div>
+        <div class="caso-motivo">${escapeHtml(c.motivo || 'Sin motivo indicado')}</div>
+      </button>`;
+  }).join('');
+
+  cont.querySelectorAll('.caso-item').forEach(el => {
+    el.addEventListener('click', () => abrirCaso(el.dataset.id));
+  });
+}
+
+// ---------- detalle de un caso ----------
+async function abrirCaso(id){
+  casoActivoId = id;
+  document.body.classList.add('viendo-caso');
+  document.getElementById('sin-seleccion').style.display = 'none';
+  document.getElementById('detalle').style.display = 'flex';
+  renderLista();
+  await refrescarDetalle();
+}
+
+async function refrescarDetalleSiActivo(){
+  if(casoActivoId) await refrescarDetalle();
+}
+
+async function refrescarDetalle(){
+  const caso = casos.find(c => c.id === casoActivoId);
+  if(!caso) return;
+
+  document.getElementById('det-telefono').textContent = caso.cliente_telefono;
+  const pill = document.getElementById('det-estado');
+  pill.textContent = caso.estado;
+
+  const esMio = caso.asesor_id === sesion.id;
+  const acciones = document.getElementById('det-acciones');
+  let botones = '';
+  if(!caso.asesor_id && caso.estado !== 'Cerrado'){
+    botones += `<button class="btn-sec btn-tomar" id="btn-tomar">Tomar este chat</button>`;
+  }
+  if(esMio && caso.estado === 'En atención'){
+    botones += `<button class="btn-sec" id="btn-esperando">Marcar esperando cliente</button>`;
+  }
+  if(esMio && caso.estado === 'Esperando cliente'){
+    botones += `<button class="btn-sec" id="btn-en-atencion">Volver a en atención</button>`;
+  }
+  if(esMio && caso.estado !== 'Cerrado'){
+    botones += `<button class="btn-sec btn-cerrar" id="btn-cerrar">Cerrar caso</button>`;
+  }
+  acciones.innerHTML = botones;
+
+  document.getElementById('btn-tomar')?.addEventListener('click', () => tomarCaso(caso.id));
+  document.getElementById('btn-esperando')?.addEventListener('click', () => cambiarEstado(caso.id, 'Esperando cliente'));
+  document.getElementById('btn-en-atencion')?.addEventListener('click', () => cambiarEstado(caso.id, 'En atención'));
+  document.getElementById('btn-cerrar')?.addEventListener('click', () => cerrarCaso(caso.id));
+
+  const puedeEscribir = esMio && caso.estado !== 'Cerrado';
+  document.getElementById('compositor').style.display = puedeEscribir ? 'flex' : 'none';
+  document.getElementById('aviso-solo-lectura').style.display = puedeEscribir ? 'none' : 'block';
+
+  await cargarMensajes(caso.id);
+  await cargarNotas(caso.id);
+}
+
+async function cargarMensajes(casoId){
+  const { data, error } = await sb
+    .from('mensajes_caso').select('*').eq('caso_id', casoId)
+    .order('creado_en', { ascending: true });
+  if(error){ console.error(error); return; }
+  mensajesCache = data || [];
+  renderMensajes();
+}
+
+function renderMensajes(){
+  const cont = document.getElementById('chat-scroll');
+  if(!mensajesCache.length){
+    cont.innerHTML = `<div class="msg-sistema">Todavía no hay mensajes en este caso.</div>`;
+    return;
+  }
+  cont.innerHTML = mensajesCache.map(m => {
+    const clase = m.remitente === 'cliente' ? 'msg-cliente'
+      : m.remitente === 'asesor' ? 'msg-asesor'
+      : m.remitente === 'valentina' ? 'msg-valentina'
+      : 'msg-sistema';
+    return `<div class="msg ${clase}">${escapeHtml(m.contenido)}<span class="msg-hora">${hora(m.creado_en)}</span></div>`;
+  }).join('');
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function cargarNotas(casoId){
+  const { data, error } = await sb
+    .from('notas_caso').select('*').eq('caso_id', casoId)
+    .order('creado_en', { ascending: false });
+  if(error){ console.error(error); return; }
+  const cont = document.getElementById('notas-scroll');
+  if(!data || !data.length){
+    cont.innerHTML = `<div class="vacio-lista" style="padding:16px 4px;">Sin notas todavía.</div>`;
+    return;
+  }
+  cont.innerHTML = data.map(n => `
+    <div class="nota">${escapeHtml(n.nota)}<span class="nota-hora">${hora(n.creado_en)}</span></div>
+  `).join('');
+}
+
+// ---------- acciones ----------
+async function tomarCaso(casoId){
+  const { error } = await sb.from('casos_atencion')
+    .update({ asesor_id: sesion.id, estado: 'En atención', tomado_en: new Date().toISOString() })
+    .eq('id', casoId).is('asesor_id', null);
+  if(error){ alert('No se pudo tomar el caso (puede que ya lo haya tomado otro asesor). Actualizando…'); }
+  await cargarCasos();
+  await refrescarDetalle();
+}
+
+async function cambiarEstado(casoId, estado){
+  await sb.from('casos_atencion').update({ estado }).eq('id', casoId);
+  await cargarCasos();
+  await refrescarDetalle();
+}
+
+async function cerrarCaso(casoId){
+  const venta = confirm('¿Este caso terminó en una venta?\n\nAceptar = Sí   Cancelar = No');
+  await sb.from('casos_atencion')
+    .update({ estado: 'Cerrado', cerrado_en: new Date().toISOString(), convertido_venta: venta })
+    .eq('id', casoId);
+  await cargarCasos();
+  await refrescarDetalle();
+}
+
+async function enviarMensaje(){
+  const caso = casos.find(c => c.id === casoActivoId);
+  const txt = document.getElementById('txt-mensaje');
+  const contenido = txt.value.trim();
+  if(!caso || !contenido) return;
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  txt.value = '';
+
+  // Optimista: lo mostramos ya mismo
+  mensajesCache.push({ remitente:'asesor', contenido, creado_en: new Date().toISOString() });
+  renderMensajes();
+
+  try{
+    await fetch(WEBHOOK_ENVIAR_MENSAJE, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        telefono: caso.cliente_telefono,
+        mensaje: contenido,
+        caso_id: caso.id,
+        asesor_id: sesion.id
+      })
+    });
+  }catch(e){
+    console.error('Error enviando por el webhook', e);
+    alert('No se pudo enviar el mensaje por WhatsApp. Revisa tu conexión e inténtalo de nuevo.');
+  }
+  btn.disabled = false;
+  setTimeout(() => cargarMensajes(caso.id), 1500);
+}
+
+document.getElementById('btn-enviar').addEventListener('click', enviarMensaje);
+document.getElementById('txt-mensaje').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); enviarMensaje(); }
+});
+document.getElementById('txt-mensaje').addEventListener('input', function(){
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 110) + 'px';
+});
+
+document.getElementById('btn-nota').addEventListener('click', async () => {
+  const input = document.getElementById('txt-nota');
+  const nota = input.value.trim();
+  if(!nota || !casoActivoId) return;
+  input.value = '';
+  await sb.from('notas_caso').insert({ caso_id: casoActivoId, asesor_id: sesion.id, nota });
+  await cargarNotas(casoActivoId);
+});
+
+// ---------- arranque ----------
+function iniciarApp(){
+  cargarCasos();
+  pollTimer = setInterval(cargarCasos, POLL_MS);
+}
+
+// Si ya había una sesión activa (recarga de página), recupérala
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if(data?.session?.user){
+    const { data: asesorRow } = await sb.from('asesores').select('*').eq('id', data.session.user.id).maybeSingle();
+    if(asesorRow && asesorRow.activo){
+      sesion = asesorRow;
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('btn-salir').textContent = iniciales(sesion.nombre, sesion.apellido);
+      iniciarApp();
+    }
+  }
+})();
+</script>
+</body>
+</html>
