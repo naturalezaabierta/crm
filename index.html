@@ -200,9 +200,28 @@
   .compositor-aviso{font-size:.72rem; color:var(--texto-suave); padding:0 16px 10px; background:var(--papel);}
 
   .notas-col{
-    width:260px; flex-shrink:0; border-left:1px solid var(--linea);
-    background:var(--papel); display:flex; flex-direction:column;
+    width:280px; flex-shrink:0; border-left:1px solid var(--linea);
+    background:var(--papel); display:flex; flex-direction:column; min-height:0;
   }
+  .panel-tabs{display:flex; border-bottom:1px solid var(--linea);}
+  .panel-tabs button{
+    flex:1; border:none; background:none; padding:11px 4px; font-size:.78rem; font-weight:700;
+    color:var(--texto-suave); cursor:pointer; border-bottom:2px solid transparent;
+  }
+  .panel-tabs button.activo{color:var(--verde-800); border-bottom-color:var(--verde-600);}
+  .panel-contenido{flex:1; min-height:0; display:none; flex-direction:column;}
+  .panel-contenido.activo{display:flex;}
+  .ficha-scroll{flex:1; overflow-y:auto; padding:14px 16px; font-size:.82rem;}
+  .ficha-bloque{margin-bottom:16px;}
+  .ficha-bloque h4{margin:0 0 6px; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:var(--texto-suave);}
+  .ficha-fila{display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px dashed var(--linea);}
+  .ficha-fila span:first-child{color:var(--texto-suave);}
+  .ficha-fila span:last-child{font-weight:600; text-align:right;}
+  .compra-item{background:var(--crema); border-radius:8px; padding:7px 9px; margin-bottom:6px; font-size:.78rem;}
+  .compra-item .ci-top{display:flex; justify-content:space-between; font-weight:700;}
+  .compra-item .ci-estado{color:var(--texto-suave); font-size:.72rem;}
+  .cat-item{display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px dashed var(--linea); font-size:.8rem;}
+  .cat-item span:last-child{font-weight:700; white-space:nowrap;}
   .notas-head{padding:14px 16px 8px; font-size:.8rem; font-weight:700; color:var(--texto-suave); border-bottom:1px solid var(--linea);}
   .notas-scroll{flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px;}
   .nota{background:var(--verde-100); border-radius:9px; padding:8px 10px; font-size:.8rem;}
@@ -222,6 +241,60 @@
     .btn-volver{display:inline-flex !important;}
   }
   .btn-volver{display:none; border:none; background:none; font-size:1.1rem; cursor:pointer; padding:0 8px 0 0; color:var(--verde-800);}
+
+  /* ---------- switch bandeja/kanban ---------- */
+  .vista-toggle{display:flex; flex-direction:column; gap:8px; margin-top:6px;}
+  .vista-toggle button{
+    width:34px; height:34px; border-radius:9px; border:none; cursor:pointer;
+    background:rgba(255,255,255,.08); color:#cfe0d3; font-size:1.05rem;
+  }
+  .vista-toggle button.activo{background:var(--verde-600); color:#fff;}
+  body.modo-kanban .lista-col{display:none;}
+  body.modo-kanban .detalle-col{flex:0 0 0; width:0; min-width:0; overflow:hidden;}
+  body.modo-kanban .sin-seleccion{display:none;}
+  .kanban-col{display:none; flex:1; min-width:0; flex-direction:column; background:var(--crema);}
+  body.modo-kanban .kanban-col{display:flex;}
+  .kanban-head{
+    padding:16px 20px 10px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .kanban-head h2{margin:0; font-size:1.05rem;}
+  .kanban-board{flex:1; display:flex; gap:14px; padding:0 20px 20px; overflow-x:auto;}
+  .kanban-columna{
+    flex:1 1 240px; min-width:230px; max-width:320px; display:flex; flex-direction:column;
+    background:var(--papel); border:1px solid var(--linea); border-radius:12px; min-height:0;
+  }
+  .kanban-col-head{
+    padding:11px 14px; font-size:.82rem; font-weight:700; border-bottom:1px solid var(--linea);
+    display:flex; align-items:center; justify-content:space-between; border-radius:12px 12px 0 0;
+  }
+  .kanban-columna[data-estado="Nuevo"] .kanban-col-head{background:var(--terracota-100); color:var(--terracota);}
+  .kanban-columna[data-estado="En atención"] .kanban-col-head{background:var(--verde-100); color:var(--verde-800);}
+  .kanban-columna[data-estado="Esperando cliente"] .kanban-col-head{background:#F4ECD8; color:#8A6A1D;}
+  .kanban-columna[data-estado="Cerrado"] .kanban-col-head{background:var(--linea); color:var(--texto-suave);}
+  .kanban-cards{flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;}
+  .kanban-cards.arrastrando-encima{background:var(--verde-100);}
+  .kanban-card{
+    background:var(--crema); border:1px solid var(--linea); border-radius:9px;
+    padding:9px 11px; cursor:grab; font-size:.82rem;
+  }
+  .kanban-card:active{cursor:grabbing;}
+  .kanban-card .kc-tel{font-weight:700; display:block;}
+  .kanban-card .kc-motivo{color:var(--texto-suave); font-size:.76rem; margin-top:2px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .kanban-card .kc-asesor{
+    display:inline-block; margin-top:6px; font-size:.68rem; font-weight:700;
+    background:var(--verde-100); color:var(--verde-800); padding:2px 7px; border-radius:99px;
+  }
+  .kanban-card .kc-asesor.sin-asignar{background:var(--terracota-100); color:var(--terracota);}
+  #detalle.modal-caso{
+    position:fixed; inset:0; z-index:60; display:flex !important; flex-direction:column;
+    box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  }
+  .btn-cerrar-modal{display:none; border:none; background:none; font-size:1.3rem; cursor:pointer; color:var(--texto-suave); line-height:1;}
+  #detalle.modal-caso .btn-cerrar-modal{display:inline-flex;}
+  @media (max-width: 720px){
+    .kanban-board{flex-direction:column; overflow-x:visible; overflow-y:auto;}
+    .kanban-columna{max-width:none;}
+  }
 </style>
 </head>
 <body>
@@ -252,6 +325,10 @@
   <div class="shell">
     <nav class="nav">
       <img src="https://www.naturalezaabierta.com/wp-content/uploads/2026/03/cropped-cropped-solo-logo-WEB2.png" alt="">
+      <div class="vista-toggle">
+        <button data-vista="bandeja" class="activo" title="Bandeja (lista)">📥</button>
+        <button data-vista="kanban" title="Tablero kanban">🗂️</button>
+      </div>
       <button class="yo" id="btn-salir" title="Cerrar sesión">--</button>
     </nav>
 
@@ -269,6 +346,31 @@
       </div>
     </div>
 
+    <div class="kanban-col" id="kanban-col">
+      <div class="kanban-head">
+        <h2>Tablero de casos</h2>
+        <button class="btn-sec" id="btn-refrescar-kanban">Actualizar</button>
+      </div>
+      <div class="kanban-board">
+        <div class="kanban-columna" data-estado="Nuevo">
+          <div class="kanban-col-head">Nuevo <span class="badge" id="kb-cnt-Nuevo" style="background:var(--terracota);">0</span></div>
+          <div class="kanban-cards" data-estado="Nuevo"></div>
+        </div>
+        <div class="kanban-columna" data-estado="En atención">
+          <div class="kanban-col-head">En atención <span class="badge" id="kb-cnt-En_atencion" style="background:var(--verde-600);">0</span></div>
+          <div class="kanban-cards" data-estado="En atención"></div>
+        </div>
+        <div class="kanban-columna" data-estado="Esperando cliente">
+          <div class="kanban-col-head">Esperando cliente <span class="badge" id="kb-cnt-Esperando" style="background:#8A6A1D;">0</span></div>
+          <div class="kanban-cards" data-estado="Esperando cliente"></div>
+        </div>
+        <div class="kanban-columna" data-estado="Cerrado">
+          <div class="kanban-col-head">Cerrado <span class="badge" id="kb-cnt-Cerrado" style="background:var(--texto-suave);">0</span></div>
+          <div class="kanban-cards" data-estado="Cerrado"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="detalle-col">
       <div class="sin-seleccion" id="sin-seleccion">Elige un caso de la lista para ver la conversación.</div>
 
@@ -276,6 +378,7 @@
         <div class="detalle-head">
           <div style="display:flex; align-items:center; min-width:0;">
             <button class="btn-volver" id="btn-volver">‹</button>
+            <button class="btn-cerrar-modal" id="btn-cerrar-modal" title="Cerrar">✕</button>
             <div>
               <h3 id="det-telefono">—</h3>
               <span id="det-estado" class="estado-pill">—</span>
@@ -295,11 +398,26 @@
           </div>
 
           <div class="notas-col">
-            <div class="notas-head">Notas internas</div>
-            <div class="notas-scroll" id="notas-scroll"></div>
-            <div class="nota-form">
-              <input type="text" id="txt-nota" placeholder="Agregar nota…">
-              <button id="btn-nota">Añadir</button>
+            <div class="panel-tabs">
+              <button data-panel="cliente" class="activo">👤 Cliente</button>
+              <button data-panel="notas">📝 Notas</button>
+              <button data-panel="catalogo">🛒 Catálogo</button>
+            </div>
+
+            <div class="panel-contenido activo" id="panel-cliente">
+              <div class="ficha-scroll" id="ficha-scroll">Cargando…</div>
+            </div>
+
+            <div class="panel-contenido" id="panel-notas">
+              <div class="notas-scroll" id="notas-scroll"></div>
+              <div class="nota-form">
+                <input type="text" id="txt-nota" placeholder="Agregar nota…">
+                <button id="btn-nota">Añadir</button>
+              </div>
+            </div>
+
+            <div class="panel-contenido" id="panel-catalogo">
+              <div class="ficha-scroll" id="catalogo-scroll">Cargando…</div>
             </div>
           </div>
         </div>
@@ -322,6 +440,8 @@ let casos = [];
 let casoActivoId = null;
 let mensajesCache = [];
 let pollTimer = null;
+let asesoresMap = {};
+let vistaActual = 'bandeja';
 
 // ---------- utilidades ----------
 function hora(iso){
@@ -402,6 +522,29 @@ document.getElementById('btn-volver').addEventListener('click', () => {
   document.body.classList.remove('viendo-caso');
 });
 
+document.getElementById('btn-cerrar-modal').addEventListener('click', () => {
+  document.getElementById('detalle').classList.remove('modal-caso');
+  document.getElementById('detalle').style.display = 'none';
+  document.getElementById('sin-seleccion').style.display = 'flex';
+  casoActivoId = null;
+});
+
+// ---------- switch bandeja / kanban ----------
+document.querySelectorAll('.vista-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.vista-toggle button').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    vistaActual = btn.dataset.vista;
+    document.body.classList.toggle('modo-kanban', vistaActual === 'kanban');
+    document.getElementById('detalle').classList.remove('modal-caso');
+    document.getElementById('detalle').style.display = 'none';
+    document.getElementById('sin-seleccion').style.display = 'flex';
+    casoActivoId = null;
+    if(vistaActual === 'kanban') renderKanban();
+  });
+});
+document.getElementById('btn-refrescar-kanban').addEventListener('click', cargarCasos);
+
 // ---------- carga de casos ----------
 async function cargarCasos(){
   const { data, error } = await sb
@@ -411,8 +554,89 @@ async function cargarCasos(){
     .limit(200);
   if(error){ console.error(error); return; }
   casos = data || [];
-  renderLista();
+  if(vistaActual === 'kanban') renderKanban();
+  else renderLista();
   if(casoActivoId) refrescarDetalleSiActivo();
+}
+
+async function cargarAsesoresMap(){
+  const { data, error } = await sb.from('asesores').select('id,nombre,apellido');
+  if(error){ console.error(error); return; }
+  asesoresMap = {};
+  (data || []).forEach(a => {
+    asesoresMap[a.id] = a.nombre + (a.apellido ? ' ' + a.apellido[0] + '.' : '');
+  });
+}
+
+// ---------- tablero kanban ----------
+const ESTADOS_KANBAN = ['Nuevo', 'En atención', 'Esperando cliente', 'Cerrado'];
+
+function renderKanban(){
+  const grupos = { 'Nuevo':[], 'En atención':[], 'Esperando cliente':[], 'Cerrado':[] };
+  casos.forEach(c => { if(grupos[c.estado]) grupos[c.estado].push(c); });
+
+  document.getElementById('kb-cnt-Nuevo').textContent = grupos['Nuevo'].length;
+  document.getElementById('kb-cnt-En_atencion').textContent = grupos['En atención'].length;
+  document.getElementById('kb-cnt-Esperando').textContent = grupos['Esperando cliente'].length;
+  document.getElementById('kb-cnt-Cerrado').textContent = grupos['Cerrado'].length;
+
+  ESTADOS_KANBAN.forEach(estado => {
+    const cont = document.querySelector(`.kanban-cards[data-estado="${estado}"]`);
+    const items = grupos[estado].slice(0, 60); // limite razonable por columna
+    if(!items.length){
+      cont.innerHTML = `<div class="vacio-lista" style="padding:16px 4px;">Sin casos aquí.</div>`;
+      return;
+    }
+    cont.innerHTML = items.map(c => {
+      const nombreAsesor = c.asesor_id ? (asesoresMap[c.asesor_id] || 'Asesor') : null;
+      return `
+        <div class="kanban-card" draggable="true" data-id="${c.id}">
+          <span class="kc-tel">${escapeHtml(c.cliente_telefono)}</span>
+          <span class="kc-motivo">${escapeHtml(c.motivo || 'Sin motivo indicado')}</span>
+          <span class="kc-asesor ${nombreAsesor ? '' : 'sin-asignar'}">${nombreAsesor ? '👤 ' + escapeHtml(nombreAsesor) : 'Sin asignar'}</span>
+        </div>`;
+    }).join('');
+  });
+
+  document.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('click', () => abrirCaso(card.dataset.id));
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+  });
+
+  document.querySelectorAll('.kanban-cards').forEach(col => {
+    col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('arrastrando-encima'); });
+    col.addEventListener('dragleave', () => col.classList.remove('arrastrando-encima'));
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      col.classList.remove('arrastrando-encima');
+      const id = e.dataTransfer.getData('text/plain');
+      const nuevoEstado = col.dataset.estado;
+      await moverCasoKanban(id, nuevoEstado);
+    });
+  });
+}
+
+async function moverCasoKanban(casoId, nuevoEstado){
+  const caso = casos.find(c => c.id === casoId);
+  if(!caso || caso.estado === nuevoEstado) return;
+
+  if(nuevoEstado === 'Cerrado'){
+    const venta = confirm('¿Este caso terminó en una venta?\n\nAceptar = Sí   Cancelar = No');
+    await sb.from('casos_atencion')
+      .update({ estado: 'Cerrado', cerrado_en: new Date().toISOString(), convertido_venta: venta })
+      .eq('id', casoId);
+  } else if(!caso.asesor_id){
+    // nadie lo tenia: al arrastrarlo, quien lo mueve lo toma
+    await sb.from('casos_atencion')
+      .update({ asesor_id: sesion.id, estado: nuevoEstado, tomado_en: new Date().toISOString() })
+      .eq('id', casoId).is('asesor_id', null);
+  } else {
+    await sb.from('casos_atencion').update({ estado: nuevoEstado }).eq('id', casoId);
+  }
+  await cargarCasos();
 }
 
 function casosPorTab(tab){
@@ -460,8 +684,10 @@ async function abrirCaso(id){
   casoActivoId = id;
   document.body.classList.add('viendo-caso');
   document.getElementById('sin-seleccion').style.display = 'none';
-  document.getElementById('detalle').style.display = 'flex';
-  renderLista();
+  const detalle = document.getElementById('detalle');
+  detalle.style.display = 'flex';
+  if(vistaActual === 'kanban') detalle.classList.add('modal-caso');
+  if(vistaActual === 'bandeja') renderLista();
   await refrescarDetalle();
 }
 
@@ -505,6 +731,7 @@ async function refrescarDetalle(){
 
   await cargarMensajes(caso.id);
   await cargarNotas(caso.id);
+  await cargarFichaCliente(caso.cliente_telefono);
 }
 
 async function cargarMensajes(casoId){
@@ -614,6 +841,90 @@ document.getElementById('txt-mensaje').addEventListener('input', function(){
   this.style.height = Math.min(this.scrollHeight, 110) + 'px';
 });
 
+// ---------- panel lateral: tabs Cliente / Notas / Catálogo ----------
+document.querySelectorAll('.panel-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.panel-tabs button').forEach(b => b.classList.remove('activo'));
+    document.querySelectorAll('.panel-contenido').forEach(p => p.classList.remove('activo'));
+    btn.classList.add('activo');
+    document.getElementById('panel-' + btn.dataset.panel).classList.add('activo');
+    if(btn.dataset.panel === 'catalogo') cargarCatalogoReferencia();
+  });
+});
+
+function moneda(m){ return m === 'USD' ? '$' : (m || ''); }
+
+async function cargarFichaCliente(telefono){
+  const cont = document.getElementById('ficha-scroll');
+  cont.innerHTML = 'Cargando…';
+  const { data, error } = await sb.rpc('fn_ficha_cliente', { p_telefono: telefono });
+  if(error){ cont.innerHTML = '<div class="vacio-lista">No se pudo cargar la ficha.</div>'; console.error(error); return; }
+
+  if(!data || !data.encontrado){
+    cont.innerHTML = '<div class="vacio-lista">Este número todavía no tiene registro como cliente.</div>';
+    return;
+  }
+
+  const c = data.cliente || {};
+  const af = data.afiliado;
+  const compras = data.compras || [];
+
+  let html = `<div class="ficha-bloque">
+    <h4>Cliente</h4>
+    <div class="ficha-fila"><span>Nombre</span><span>${escapeHtml((c.nombre||'')+' '+(c.apellido||''))}</span></div>
+    ${c.numero_cedula ? `<div class="ficha-fila"><span>Cédula</span><span>${escapeHtml(c.numero_cedula)}</span></div>` : ''}
+    ${c.zona_estado_ciudad ? `<div class="ficha-fila"><span>Zona</span><span>${escapeHtml(c.zona_estado_ciudad)}</span></div>` : ''}
+    ${c.etapa_cliente ? `<div class="ficha-fila"><span>Etapa</span><span>${escapeHtml(c.etapa_cliente)}</span></div>` : ''}
+  </div>`;
+
+  if(af){
+    html += `<div class="ficha-bloque">
+      <h4>Afiliado</h4>
+      <div class="ficha-fila"><span>Código</span><span>${escapeHtml(af.codigo_propio||'—')}</span></div>
+      <div class="ficha-fila"><span>Ventas referidas</span><span>${moneda(null)}${af.ventas_referidas_totales ?? 0}</span></div>
+      <div class="ficha-fila"><span>Saldo pendiente</span><span>${af.saldo_acumulado ?? 0}</span></div>
+    </div>`;
+  }
+
+  html += `<div class="ficha-bloque"><h4>Historial de compras (${compras.length})</h4>`;
+  if(!compras.length){
+    html += `<div class="vacio-lista" style="padding:8px 0;">Sin compras registradas.</div>`;
+  } else {
+    compras.forEach(co => {
+      html += `<div class="compra-item">
+        <div class="ci-top"><span>${escapeHtml(co.producto||'—')}</span><span>${moneda(co.moneda)}${co.monto ?? ''}</span></div>
+        <div class="ci-estado">${escapeHtml(co.estado_compra||'')}${co.estado_envio ? ' · envío: '+escapeHtml(co.estado_envio) : ''}${co.numero_guia ? ' · guía '+escapeHtml(co.numero_guia) : ''}</div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  cont.innerHTML = html;
+}
+
+let catalogoCargado = false;
+async function cargarCatalogoReferencia(){
+  if(catalogoCargado) return;
+  const cont = document.getElementById('catalogo-scroll');
+  const { data, error } = await sb.rpc('fn_catalogo_referencia_asesor');
+  if(error){ cont.innerHTML = '<div class="vacio-lista">No se pudo cargar el catálogo.</div>'; console.error(error); return; }
+  catalogoCargado = true;
+
+  let html = `<div class="ficha-bloque"><h4>Productos</h4>`;
+  (data.productos||[]).forEach(p => {
+    html += `<div class="cat-item"><span>${escapeHtml(p.nombre)}</span><span>${moneda(p.moneda)}${p.precio}</span></div>`;
+  });
+  html += `</div><div class="ficha-bloque"><h4>Eventos / experiencias</h4>`;
+  if(!(data.eventos||[]).length){
+    html += `<div class="vacio-lista" style="padding:8px 0;">Sin eventos disponibles.</div>`;
+  }
+  (data.eventos||[]).forEach(e => {
+    html += `<div class="cat-item"><span>${escapeHtml(e.nombre)} — ${escapeHtml(e.fecha||'')}</span><span>${moneda(e.moneda)}${e.precio}</span></div>`;
+  });
+  html += `</div>`;
+  cont.innerHTML = html;
+}
+
 document.getElementById('btn-nota').addEventListener('click', async () => {
   const input = document.getElementById('txt-nota');
   const nota = input.value.trim();
@@ -625,6 +936,7 @@ document.getElementById('btn-nota').addEventListener('click', async () => {
 
 // ---------- arranque ----------
 function iniciarApp(){
+  cargarAsesoresMap();
   cargarCasos();
   pollTimer = setInterval(cargarCasos, POLL_MS);
 }
