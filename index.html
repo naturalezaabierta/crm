@@ -458,7 +458,7 @@ function haceTiempo(iso){
   return `hace ${Math.floor(h/24)} d`;
 }
 function iniciales(nombre, apellido){
-  return ((nombre||'?')[0] + (apellido||'')[0]).toUpperCase();
+  return ((nombre||'?')[0] + ((apellido||'')[0] || '')).toUpperCase();
 }
 function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
