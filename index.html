@@ -252,8 +252,23 @@
   body.modo-kanban .lista-col{display:none;}
   body.modo-kanban .detalle-col{flex:0 0 0; width:0; min-width:0; overflow:hidden;}
   body.modo-kanban .sin-seleccion{display:none;}
-  .kanban-col{display:none; flex:1; min-width:0; flex-direction:column; background:var(--crema);}
+  .kanban-col, .ventas-col{display:none; flex:1; min-width:0; flex-direction:column; background:var(--crema); overflow:hidden;}
   body.modo-kanban .kanban-col{display:flex;}
+  body.modo-ventas .ventas-col{display:flex;}
+  body.modo-ventas .lista-col{display:none;}
+  .venta-item{
+    background:var(--papel); border:1px solid var(--linea); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px; font-size:.84rem;
+  }
+  .venta-top{display:flex; justify-content:space-between; gap:10px; font-weight:700; margin-bottom:4px;}
+  .venta-fila{display:flex; justify-content:space-between; gap:8px; padding:2px 0; color:var(--texto-suave);}
+  .venta-fila b{color:var(--texto); font-weight:600;}
+  .guia-copiar{
+    display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+    background:var(--verde-100); color:var(--verde-800); padding:2px 9px; border-radius:99px;
+    font-weight:700; font-size:.76rem; border:none;
+  }
+  .guia-copiar:hover{background:var(--verde-500); color:#fff;}
   .kanban-head{
     padding:16px 20px 10px; display:flex; align-items:center; justify-content:space-between;
   }
@@ -328,6 +343,7 @@
       <div class="vista-toggle">
         <button data-vista="bandeja" class="activo" title="Bandeja (lista)">📥</button>
         <button data-vista="kanban" title="Tablero kanban">🗂️</button>
+        <button data-vista="ventas" title="Ventas / Envíos">🔎</button>
       </div>
       <button class="yo" id="btn-salir" title="Cerrar sesión">--</button>
     </nav>
@@ -369,6 +385,24 @@
           <div class="kanban-cards" data-estado="Cerrado"></div>
         </div>
       </div>
+    </div>
+
+    <div class="ventas-col" id="ventas-col">
+      <div class="kanban-head">
+        <h2>Ventas / Envíos</h2>
+      </div>
+      <div style="padding:0 20px 12px;">
+        <input type="text" id="ventas-buscar" placeholder="Buscar por teléfono, cédula, nombre, N° de compra o de guía…" style="width:100%; padding:11px 13px; border-radius:9px; border:1px solid var(--linea); font-size:.9rem; background:var(--papel); color:var(--texto);">
+      </div>
+      <div style="padding:0 20px 8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <span style="font-size:.75rem; color:var(--texto-suave); font-weight:700;">Rastrear en:</span>
+        <button class="btn-sec btn-courier" data-url="https://www.mrw.com.ve/rastreo-de-envios/">MRW</button>
+        <button class="btn-sec btn-courier" data-url="https://www.tealca.com/rastreo">Tealca</button>
+        <button class="btn-sec btn-courier" data-url="https://www.zoom.com.ve/">Zoom</button>
+        <button class="btn-sec btn-courier" data-url="https://domesa.com.ve/">Domesa</button>
+        <span style="font-size:.7rem; color:var(--texto-suave);">(abre la página, pega el código que copiaste)</span>
+      </div>
+      <div class="ficha-scroll" id="ventas-resultados" style="flex:1; padding:0 20px 20px;"></div>
     </div>
 
     <div class="detalle-col">
@@ -536,6 +570,7 @@ document.querySelectorAll('.vista-toggle button').forEach(btn => {
     btn.classList.add('activo');
     vistaActual = btn.dataset.vista;
     document.body.classList.toggle('modo-kanban', vistaActual === 'kanban');
+    document.body.classList.toggle('modo-ventas', vistaActual === 'ventas');
     document.getElementById('detalle').classList.remove('modal-caso');
     document.getElementById('detalle').style.display = 'none';
     document.getElementById('sin-seleccion').style.display = 'flex';
@@ -544,6 +579,59 @@ document.querySelectorAll('.vista-toggle button').forEach(btn => {
   });
 });
 document.getElementById('btn-refrescar-kanban').addEventListener('click', cargarCasos);
+
+// ---------- Ventas / Envíos ----------
+document.querySelectorAll('.btn-courier').forEach(btn => {
+  btn.addEventListener('click', () => window.open(btn.dataset.url, '_blank'));
+});
+
+let ventasDebounce = null;
+document.getElementById('ventas-buscar').addEventListener('input', (e) => {
+  clearTimeout(ventasDebounce);
+  const q = e.target.value.trim();
+  if(q.length < 3){
+    document.getElementById('ventas-resultados').innerHTML = q.length
+      ? '<div class="vacio-lista">Escribe al menos 3 caracteres…</div>' : '';
+    return;
+  }
+  ventasDebounce = setTimeout(() => buscarVentas(q), 400);
+});
+
+async function buscarVentas(q){
+  const cont = document.getElementById('ventas-resultados');
+  cont.innerHTML = 'Buscando…';
+  const { data, error } = await sb.rpc('fn_buscar_ventas', { p_query: q });
+  if(error){ cont.innerHTML = '<div class="vacio-lista">Error al buscar.</div>'; console.error(error); return; }
+  if(!data || !data.length){ cont.innerHTML = '<div class="vacio-lista">Sin resultados.</div>'; return; }
+
+  cont.innerHTML = data.map(v => `
+    <div class="venta-item">
+      <div class="venta-top">
+        <span>${escapeHtml((v.nombre||'')+' '+(v.apellido||''))} — ${escapeHtml(v.producto||'')}</span>
+        <span>${moneda(v.moneda)}${v.monto ?? ''}</span>
+      </div>
+      <div class="venta-fila"><span>Compra</span><b>${escapeHtml(v.compra_id||'—')} · ${escapeHtml(v.estado_compra||'')}</b></div>
+      ${v.telefono_envio ? `<div class="venta-fila"><span>Teléfono envío</span><b>${escapeHtml(v.telefono_envio)}</b></div>` : ''}
+      ${(v.direccion_envio||v.ciudad_envio) ? `<div class="venta-fila"><span>Dirección</span><b>${escapeHtml([v.direccion_envio,v.ciudad_envio,v.provincia_envio,v.pais_envio].filter(Boolean).join(', '))}</b></div>` : ''}
+      ${v.oficina_envio ? `<div class="venta-fila"><span>Oficina</span><b>${escapeHtml(v.oficina_envio)}</b></div>` : ''}
+      ${v.estado_envio ? `<div class="venta-fila"><span>Estado envío</span><b>${escapeHtml(v.estado_envio)}</b></div>` : ''}
+      ${v.numero_guia ? `<div class="venta-fila"><span>N° de guía</span>
+        <button class="guia-copiar" data-guia="${escapeHtml(v.numero_guia)}">📋 ${escapeHtml(v.numero_guia)}</button>
+      </div>` : ''}
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('.guia-copiar').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(btn.dataset.guia);
+        const original = btn.innerHTML;
+        btn.innerHTML = '✅ Copiado';
+        setTimeout(() => btn.innerHTML = original, 1500);
+      }catch(e){ alert('No se pudo copiar: ' + btn.dataset.guia); }
+    });
+  });
+}
 
 // ---------- carga de casos ----------
 async function cargarCasos(){
