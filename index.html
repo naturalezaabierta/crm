@@ -396,12 +396,13 @@
       </div>
       <div style="padding:0 20px 8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <span style="font-size:.75rem; color:var(--texto-suave); font-weight:700;">Rastrear en:</span>
-        <button class="btn-sec btn-courier" data-url="https://www.mrw.com.ve/rastreo-de-envios/">MRW</button>
-        <button class="btn-sec btn-courier" data-url="https://www.tealca.com/rastreo">Tealca</button>
-        <button class="btn-sec btn-courier" data-url="https://www.zoom.com.ve/">Zoom</button>
-        <button class="btn-sec btn-courier" data-url="https://domesa.com.ve/">Domesa</button>
+        <span id="couriers-lista" style="display:contents;"></span>
         <span style="font-size:.7rem; color:var(--texto-suave);">(abre la página, pega el código que copiaste)</span>
       </div>
+      <div id="empresas-admin-toggle" style="padding:0 20px 10px; display:none;">
+        <button class="btn-sec" id="btn-abrir-empresas-admin">⚙️ Gestionar empresas de envío</button>
+      </div>
+      <div id="empresas-admin-panel" style="display:none; padding:0 20px 14px;"></div>
       <div class="ficha-scroll" id="ventas-resultados" style="flex:1; padding:0 20px 20px;"></div>
     </div>
 
@@ -436,6 +437,7 @@
               <button data-panel="cliente" class="activo">👤 Cliente</button>
               <button data-panel="notas">📝 Notas</button>
               <button data-panel="catalogo">🛒 Catálogo</button>
+              <button data-panel="historial">🕓 Historial</button>
             </div>
 
             <div class="panel-contenido activo" id="panel-cliente">
@@ -452,6 +454,10 @@
 
             <div class="panel-contenido" id="panel-catalogo">
               <div class="ficha-scroll" id="catalogo-scroll">Cargando…</div>
+            </div>
+
+            <div class="panel-contenido" id="panel-historial">
+              <div class="ficha-scroll" id="historial-scroll">Cargando…</div>
             </div>
           </div>
         </div>
@@ -576,14 +582,105 @@ document.querySelectorAll('.vista-toggle button').forEach(btn => {
     document.getElementById('sin-seleccion').style.display = 'flex';
     casoActivoId = null;
     if(vistaActual === 'kanban') renderKanban();
+    if(vistaActual === 'ventas') cargarEmpresasEnvio();
   });
 });
 document.getElementById('btn-refrescar-kanban').addEventListener('click', cargarCasos);
 
-// ---------- Ventas / Envíos ----------
-document.querySelectorAll('.btn-courier').forEach(btn => {
-  btn.addEventListener('click', () => window.open(btn.dataset.url, '_blank'));
+// ---------- Ventas / Envíos: empresas de envio (dinamico, ya no hardcodeado) ----------
+let empresasEnvioCache = null;
+let puedeGestionarEnvios = false;
+
+async function verificarPermisoEnvios(){
+  const { data } = await sb.from('permisos_area').select('nivel').eq('usuario_id', sesion.id).eq('area','pedidos_envios').maybeSingle();
+  puedeGestionarEnvios = !!(data && data.nivel === 'editar');
+  document.getElementById('empresas-admin-toggle').style.display = puedeGestionarEnvios ? 'block' : 'none';
+}
+
+async function cargarEmpresasEnvio(forzar){
+  if(empresasEnvioCache && !forzar) return renderCouriers();
+  const { data, error } = await sb.rpc('fn_listar_empresas_envio_asesor');
+  if(error){ console.error(error); empresasEnvioCache = []; return renderCouriers(); }
+  empresasEnvioCache = data || [];
+  renderCouriers();
+}
+
+function renderCouriers(){
+  const cont = document.getElementById('couriers-lista');
+  if(!empresasEnvioCache || !empresasEnvioCache.length){
+    cont.innerHTML = `<span style="font-size:.76rem; color:var(--texto-suave); font-style:italic;">Sin empresas de envío configuradas todavía.</span>`;
+    return;
+  }
+  cont.innerHTML = empresasEnvioCache.map(e =>
+    `<button class="btn-sec btn-courier" data-url="${escapeHtml(e.url_buscador)}">${escapeHtml(e.nombre)}</button>`
+  ).join('');
+  cont.querySelectorAll('.btn-courier').forEach(btn => {
+    btn.addEventListener('click', () => window.open(btn.dataset.url, '_blank'));
+  });
+}
+
+document.getElementById('btn-abrir-empresas-admin').addEventListener('click', async () => {
+  const panel = document.getElementById('empresas-admin-panel');
+  const visible = panel.style.display === 'block';
+  panel.style.display = visible ? 'none' : 'block';
+  if(!visible) await renderEmpresasAdmin();
 });
+
+async function renderEmpresasAdmin(){
+  const panel = document.getElementById('empresas-admin-panel');
+  panel.innerHTML = 'Cargando…';
+  const { data, error } = await sb.from('empresas_envio').select('*').order('orden').order('nombre');
+  if(error){ panel.innerHTML = '<div class="vacio-lista">No se pudo cargar.</div>'; console.error(error); return; }
+
+  panel.innerHTML = `
+    <div style="background:var(--papel); border:1px solid var(--linea); border-radius:10px; padding:12px;">
+      <div style="font-weight:700; font-size:.85rem; margin-bottom:8px;">Empresas de envío</div>
+      <div id="empresas-admin-lista"></div>
+      <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+        <input type="text" id="nueva-empresa-nombre" placeholder="Nombre (ej. MRW)" style="flex:1; min-width:100px; padding:7px 9px; border:1px solid var(--linea); border-radius:7px; font-size:.8rem; background:var(--crema); color:var(--texto);">
+        <input type="text" id="nueva-empresa-url" placeholder="URL del buscador" style="flex:2; min-width:160px; padding:7px 9px; border:1px solid var(--linea); border-radius:7px; font-size:.8rem; background:var(--crema); color:var(--texto);">
+        <button class="btn-sec btn-tomar" id="btn-agregar-empresa">Agregar</button>
+      </div>
+    </div>`;
+
+  const lista = document.getElementById('empresas-admin-lista');
+  if(!data.length){
+    lista.innerHTML = `<div class="vacio-lista" style="padding:8px 0;">Ninguna empresa cargada todavía.</div>`;
+  } else {
+    lista.innerHTML = data.map(e => `
+      <div style="display:flex; align-items:center; gap:6px; padding:5px 0; border-bottom:1px dashed var(--linea); font-size:.8rem;">
+        <span style="flex:1; ${e.activo?'':'opacity:.5; text-decoration:line-through;'}">${escapeHtml(e.nombre)}</span>
+        <button class="btn-sec" data-toggle="${e.id}" data-activo="${e.activo}" style="padding:4px 8px; font-size:.72rem;">${e.activo ? 'Desactivar' : 'Activar'}</button>
+        <button class="btn-sec btn-cerrar" data-borrar="${e.id}" style="padding:4px 8px; font-size:.72rem;">Borrar</button>
+      </div>`).join('');
+  }
+
+  lista.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await sb.from('empresas_envio').update({ activo: btn.dataset.activo !== 'true' }).eq('id', btn.dataset.toggle);
+      await renderEmpresasAdmin();
+      await cargarEmpresasEnvio(true);
+    });
+  });
+  lista.querySelectorAll('[data-borrar]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm('¿Borrar esta empresa de envío?')) return;
+      await sb.from('empresas_envio').delete().eq('id', btn.dataset.borrar);
+      await renderEmpresasAdmin();
+      await cargarEmpresasEnvio(true);
+    });
+  });
+
+  document.getElementById('btn-agregar-empresa').addEventListener('click', async () => {
+    const nombre = document.getElementById('nueva-empresa-nombre').value.trim();
+    const url = document.getElementById('nueva-empresa-url').value.trim();
+    if(!nombre || !url) return;
+    const { error } = await sb.from('empresas_envio').insert({ nombre, url_buscador: url });
+    if(error){ alert('No se pudo agregar.'); console.error(error); return; }
+    await renderEmpresasAdmin();
+    await cargarEmpresasEnvio(true);
+  });
+}
 
 let ventasDebounce = null;
 document.getElementById('ventas-buscar').addEventListener('input', (e) => {
@@ -604,6 +701,8 @@ async function buscarVentas(q){
   if(error){ cont.innerHTML = '<div class="vacio-lista">Error al buscar.</div>'; console.error(error); return; }
   if(!data || !data.length){ cont.innerHTML = '<div class="vacio-lista">Sin resultados.</div>'; return; }
 
+  const ESTADOS_ENVIO = ['Pendiente','En preparación','Enviado','Entregado','No Aplica'];
+
   cont.innerHTML = data.map(v => `
     <div class="venta-item">
       <div class="venta-top">
@@ -614,7 +713,11 @@ async function buscarVentas(q){
       ${v.telefono_envio ? `<div class="venta-fila"><span>Teléfono envío</span><b>${escapeHtml(v.telefono_envio)}</b></div>` : ''}
       ${(v.direccion_envio||v.ciudad_envio) ? `<div class="venta-fila"><span>Dirección</span><b>${escapeHtml([v.direccion_envio,v.ciudad_envio,v.provincia_envio,v.pais_envio].filter(Boolean).join(', '))}</b></div>` : ''}
       ${v.oficina_envio ? `<div class="venta-fila"><span>Oficina</span><b>${escapeHtml(v.oficina_envio)}</b></div>` : ''}
-      ${v.estado_envio ? `<div class="venta-fila"><span>Estado envío</span><b>${escapeHtml(v.estado_envio)}</b></div>` : ''}
+      ${v.compra_id ? `<div class="venta-fila"><span>Estado envío</span>
+        <select class="sel-estado-envio" data-compra="${escapeHtml(v.compra_id)}" style="border:1px solid var(--linea); border-radius:7px; padding:3px 6px; font-size:.76rem; font-weight:700; background:var(--papel); color:var(--texto);">
+          ${ESTADOS_ENVIO.map(op => `<option value="${op}" ${v.estado_envio===op?'selected':''}>${op}</option>`).join('')}
+        </select>
+      </div>` : ''}
       ${v.numero_guia ? `<div class="venta-fila"><span>N° de guía</span>
         <button class="guia-copiar" data-guia="${escapeHtml(v.numero_guia)}">📋 ${escapeHtml(v.numero_guia)}</button>
       </div>` : ''}
@@ -629,6 +732,17 @@ async function buscarVentas(q){
         btn.innerHTML = '✅ Copiado';
         setTimeout(() => btn.innerHTML = original, 1500);
       }catch(e){ alert('No se pudo copiar: ' + btn.dataset.guia); }
+    });
+  });
+
+  cont.querySelectorAll('.sel-estado-envio').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const compraId = sel.dataset.compra;
+      const nuevo = sel.value;
+      sel.disabled = true;
+      const { error } = await sb.rpc('fn_actualizar_estado_pedido_asesor', { p_compra_id: compraId, p_estado_envio: nuevo });
+      sel.disabled = false;
+      if(error){ alert('No se pudo actualizar el estado del envío.'); console.error(error); }
     });
   });
 }
@@ -929,7 +1043,7 @@ document.getElementById('txt-mensaje').addEventListener('input', function(){
   this.style.height = Math.min(this.scrollHeight, 110) + 'px';
 });
 
-// ---------- panel lateral: tabs Cliente / Notas / Catálogo ----------
+// ---------- panel lateral: tabs Cliente / Notas / Catálogo / Historial ----------
 document.querySelectorAll('.panel-tabs button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.panel-tabs button').forEach(b => b.classList.remove('activo'));
@@ -937,6 +1051,7 @@ document.querySelectorAll('.panel-tabs button').forEach(btn => {
     btn.classList.add('activo');
     document.getElementById('panel-' + btn.dataset.panel).classList.add('activo');
     if(btn.dataset.panel === 'catalogo') cargarCatalogoReferencia();
+    if(btn.dataset.panel === 'historial') cargarHistorialCaso(casoActivoId);
   });
 });
 
@@ -1013,6 +1128,28 @@ async function cargarCatalogoReferencia(){
   cont.innerHTML = html;
 }
 
+async function cargarHistorialCaso(casoId){
+  const cont = document.getElementById('historial-scroll');
+  if(!casoId){ cont.innerHTML = ''; return; }
+  cont.innerHTML = 'Cargando…';
+  const { data, error } = await sb.rpc('fn_historial_caso_asesor', { p_caso_id: casoId });
+  if(error){ cont.innerHTML = '<div class="vacio-lista">No se pudo cargar el historial.</div>'; console.error(error); return; }
+  if(!data || !data.length){ cont.innerHTML = '<div class="vacio-lista">Sin cambios registrados todavía.</div>'; return; }
+  cont.innerHTML = data.map(h => {
+    let linea = '';
+    if(h.asesor_nuevo_id && h.asesor_anterior_id !== h.asesor_nuevo_id){
+      linea = h.asesor_anterior_id
+        ? `Reasignado de ${escapeHtml(h.asesor_anterior_nombre||'—')} a ${escapeHtml(h.asesor_nuevo_nombre||'—')}`
+        : `Tomado por ${escapeHtml(h.asesor_nuevo_nombre||'—')}`;
+    } else if(h.estado_nuevo && h.estado_anterior !== h.estado_nuevo){
+      linea = `Estado: ${escapeHtml(h.estado_anterior||'—')} → ${escapeHtml(h.estado_nuevo||'—')}`;
+    } else {
+      linea = h.accion === 'INSERT' ? 'Caso creado' : 'Actualización';
+    }
+    return `<div class="nota">${linea}<span class="nota-hora">${hora(h.ocurrido_en)}</span></div>`;
+  }).join('');
+}
+
 document.getElementById('btn-nota').addEventListener('click', async () => {
   const input = document.getElementById('txt-nota');
   const nota = input.value.trim();
@@ -1026,6 +1163,7 @@ document.getElementById('btn-nota').addEventListener('click', async () => {
 function iniciarApp(){
   cargarAsesoresMap();
   cargarCasos();
+  verificarPermisoEnvios();
   pollTimer = setInterval(cargarCasos, POLL_MS);
 }
 
