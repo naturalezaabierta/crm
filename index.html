@@ -222,7 +222,8 @@
   .compra-item .ci-top{display:flex; justify-content:space-between; font-weight:700;}
   .compra-item .ci-estado{color:var(--texto-suave); font-size:.72rem;}
   .cat-item{display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px dashed var(--linea); font-size:.8rem;}
-  .cat-item span:last-child{font-weight:700; white-space:nowrap;}
+  .cat-item .cat-precio{font-weight:700; white-space:nowrap; display:flex; align-items:center; gap:6px;}
+  .btn-copiar-info{margin-top:8px; width:100%; justify-content:center; padding:6px 10px;}
   .notas-head{padding:14px 16px 8px; font-size:.8rem; font-weight:700; color:var(--texto-suave); border-bottom:1px solid var(--linea);}
   .notas-scroll{flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px;}
   .nota{background:var(--verde-100); border-radius:9px; padding:8px 10px; font-size:.8rem;}
@@ -834,6 +835,34 @@ document.getElementById('ventas-buscar').addEventListener('input', (e) => {
   ventasDebounce = setTimeout(() => buscarVentas(q), 400);
 });
 
+async function copiarTexto(btn, texto){
+  const original = btn.innerHTML;
+  try{
+    await navigator.clipboard.writeText(texto);
+    btn.innerHTML = '✅ Copiado';
+  }catch(e){
+    window.prompt('Copia manualmente (Ctrl+C):', texto);
+  }
+  setTimeout(() => btn.innerHTML = original, 1500);
+}
+
+function textoInfoPedido(v){
+  const dir = [v.direccion_envio, v.ciudad_envio, v.provincia_envio, v.pais_envio].filter(Boolean).join(', ');
+  return [
+    `Cliente: ${((v.nombre||'')+' '+(v.apellido||'')).trim()}`,
+    `Producto: ${v.producto||''}`,
+    `Monto: ${moneda(v.moneda)}${v.monto ?? ''}`,
+    `Compra: ${v.compra_id||'—'}${v.estado_compra ? ' ('+v.estado_compra+')' : ''}`,
+    v.telefono_envio ? `Teléfono envío: ${v.telefono_envio}` : '',
+    dir ? `Dirección: ${dir}` : '',
+    v.oficina_envio ? `Oficina: ${v.oficina_envio}` : '',
+    v.estado_envio ? `Estado envío: ${v.estado_envio}` : '',
+    v.numero_guia ? `N° de guía: ${v.numero_guia}` : ''
+  ].filter(Boolean).join('\n');
+}
+
+let ventasActuales = [];
+
 async function buscarVentas(q){
   const cont = document.getElementById('ventas-resultados');
   cont.innerHTML = 'Buscando…';
@@ -842,8 +871,9 @@ async function buscarVentas(q){
   if(!data || !data.length){ cont.innerHTML = '<div class="vacio-lista">Sin resultados.</div>'; return; }
 
   const ESTADOS_ENVIO = ['Pendiente','En preparación','Enviado','Entregado','No Aplica'];
+  ventasActuales = data;
 
-  cont.innerHTML = data.map(v => `
+  cont.innerHTML = data.map((v, i) => `
     <div class="venta-item">
       <div class="venta-top">
         <span>${escapeHtml((v.nombre||'')+' '+(v.apellido||''))} — ${escapeHtml(v.producto||'')}</span>
@@ -861,8 +891,13 @@ async function buscarVentas(q){
       ${v.numero_guia ? `<div class="venta-fila"><span>N° de guía</span>
         <button class="guia-copiar" data-guia="${escapeHtml(v.numero_guia)}">📋 ${escapeHtml(v.numero_guia)}</button>
       </div>` : ''}
+      <button class="guia-copiar btn-copiar-info" data-info="${i}">📋 Copiar info del pedido</button>
     </div>
   `).join('');
+
+  cont.querySelectorAll('.btn-copiar-info').forEach(btn => {
+    btn.addEventListener('click', () => copiarTexto(btn, textoInfoPedido(ventasActuales[btn.dataset.info])));
+  });
 
   cont.querySelectorAll('.guia-copiar').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1255,17 +1290,20 @@ async function cargarCatalogoReferencia(){
 
   let html = `<div class="ficha-bloque"><h4>Productos</h4>`;
   (data.productos||[]).forEach(p => {
-    html += `<div class="cat-item"><span>${escapeHtml(p.nombre)}</span><span>${moneda(p.moneda)}${p.precio}</span></div>`;
+    html += `<div class="cat-item"><span>${escapeHtml(p.nombre)}</span><span class="cat-precio">${moneda(p.moneda)}${p.precio} <button class="guia-copiar btn-cat-copiar" data-txt="${escapeHtml(p.nombre+' — '+moneda(p.moneda)+p.precio)}" title="Copiar">📋</button></span></div>`;
   });
   html += `</div><div class="ficha-bloque"><h4>Eventos / experiencias</h4>`;
   if(!(data.eventos||[]).length){
     html += `<div class="vacio-lista" style="padding:8px 0;">Sin eventos disponibles.</div>`;
   }
   (data.eventos||[]).forEach(e => {
-    html += `<div class="cat-item"><span>${escapeHtml(e.nombre)} — ${escapeHtml(e.fecha||'')}</span><span>${moneda(e.moneda)}${e.precio}</span></div>`;
+    html += `<div class="cat-item"><span>${escapeHtml(e.nombre)} — ${escapeHtml(e.fecha||'')}</span><span class="cat-precio">${moneda(e.moneda)}${e.precio} <button class="guia-copiar btn-cat-copiar" data-txt="${escapeHtml(e.nombre+(e.fecha?' — '+e.fecha:'')+' — '+moneda(e.moneda)+e.precio)}" title="Copiar">📋</button></span></div>`;
   });
   html += `</div>`;
   cont.innerHTML = html;
+  cont.querySelectorAll('.btn-cat-copiar').forEach(btn => {
+    btn.addEventListener('click', () => copiarTexto(btn, btn.dataset.txt));
+  });
 }
 
 async function cargarHistorialCaso(casoId){
