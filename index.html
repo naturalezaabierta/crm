@@ -123,7 +123,8 @@
     overflow:hidden;
   }
   .lista-head{padding:16px 16px 10px; border-bottom:1px solid var(--linea);}
-  .lista-head h2{margin:0 0 12px; font-size:1.05rem;}
+  .lista-head h2{margin:0 0 2px; font-size:1.05rem;}
+  .mi-nombre{font-size:.76rem; color:var(--texto-suave); font-weight:600; margin:0 0 12px;}
   .tabs{display:flex; gap:4px; background:var(--verde-100); padding:3px; border-radius:9px;}
   .tabs button{
     flex:1; border:none; background:transparent; padding:7px 4px;
@@ -252,10 +253,27 @@
   body.modo-kanban .lista-col{display:none;}
   body.modo-kanban .detalle-col{flex:0 0 0; width:0; min-width:0; overflow:hidden;}
   body.modo-kanban .sin-seleccion{display:none;}
-  .kanban-col, .ventas-col{display:none; flex:1; min-width:0; flex-direction:column; background:var(--crema); overflow:hidden;}
+  .kanban-col, .ventas-col, .distribuidores-col{display:none; flex:1; min-width:0; flex-direction:column; background:var(--crema); overflow:hidden;}
   body.modo-kanban .kanban-col{display:flex;}
   body.modo-ventas .ventas-col{display:flex;}
   body.modo-ventas .lista-col{display:none;}
+  body.modo-distribuidores .distribuidores-col{display:flex;}
+  body.modo-distribuidores .lista-col{display:none;}
+  .dist-tabs{display:flex; gap:4px; background:var(--verde-100); padding:3px; border-radius:9px; margin:0 20px 12px;}
+  .dist-tabs button{flex:1; border:none; background:transparent; padding:7px 4px; border-radius:7px; font-size:.78rem; font-weight:700; color:var(--texto-suave); cursor:pointer;}
+  .dist-tabs button.activo{background:var(--papel); color:var(--verde-800); box-shadow:var(--sombra);}
+  .dist-bloque-estado{margin-bottom:14px;}
+  .dist-bloque-estado h4{margin:0 0 6px; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:var(--texto-suave);}
+  .dist-tarjeta{background:var(--papel); border:1px solid var(--linea); border-radius:10px; padding:11px 13px; margin-bottom:8px; font-size:.84rem;}
+  .dist-tarjeta .dt-nombre{font-weight:700; display:flex; justify-content:space-between; gap:8px;}
+  .dist-tarjeta .dt-zona{color:var(--texto-suave); font-size:.74rem; margin-top:1px;}
+  .dist-tarjeta .dt-productos{margin:8px 0 0; padding:0; list-style:none;}
+  .dist-tarjeta .dt-productos li{display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-top:1px dashed var(--linea); font-size:.8rem;}
+  .dist-venta-fila{display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--linea); font-size:.82rem;}
+  .dist-venta-fila .dv-izq b{display:block;}
+  .dist-venta-fila .dv-izq span{color:var(--texto-suave); font-size:.74rem;}
+  .dist-venta-fila .dv-der{text-align:right; white-space:nowrap;}
+  .dist-venta-fila .dv-der span{display:block; color:var(--texto-suave); font-size:.72rem;}
   .venta-item{
     background:var(--papel); border:1px solid var(--linea); border-radius:10px;
     padding:12px 14px; margin-bottom:10px; font-size:.84rem;
@@ -344,6 +362,7 @@
         <button data-vista="bandeja" class="activo" title="Bandeja (lista)">📥</button>
         <button data-vista="kanban" title="Tablero kanban">🗂️</button>
         <button data-vista="ventas" title="Ventas / Envíos">🔎</button>
+        <button data-vista="distribuidores" title="Distribuidores">🏬</button>
       </div>
       <button class="yo" id="btn-salir" title="Cerrar sesión">--</button>
     </nav>
@@ -351,6 +370,7 @@
     <div class="lista-col">
       <div class="lista-head">
         <h2>Casos</h2>
+        <div class="mi-nombre" id="mi-nombre"></div>
         <div class="tabs">
           <button data-tab="nuevo" class="activo">Nuevos <span class="badge" id="cnt-nuevo" style="display:none;">0</span></button>
           <button data-tab="mios">Míos <span class="badge" id="cnt-mios" style="display:none;">0</span></button>
@@ -404,6 +424,21 @@
       </div>
       <div id="empresas-admin-panel" style="display:none; padding:0 20px 14px;"></div>
       <div class="ficha-scroll" id="ventas-resultados" style="flex:1; padding:0 20px 20px;"></div>
+    </div>
+
+    <div class="distribuidores-col" id="distribuidores-col">
+      <div class="kanban-head">
+        <h2>Distribuidores</h2>
+      </div>
+      <div class="dist-tabs">
+        <button data-dist-tab="existencias" class="activo">📦 Existencias</button>
+        <button data-dist-tab="ventas">🧾 Ventas recientes</button>
+      </div>
+      <div style="padding:0 20px 10px;">
+        <input type="text" id="dist-buscar" placeholder="Buscar por producto, estado o ciudad…" style="width:100%; padding:11px 13px; border-radius:9px; border:1px solid var(--linea); font-size:.9rem; background:var(--papel); color:var(--texto);">
+      </div>
+      <div class="ficha-scroll" id="dist-existencias" style="flex:1; padding:0 20px 20px;"></div>
+      <div class="ficha-scroll" id="dist-ventas" style="flex:1; padding:0 20px 20px; display:none;"></div>
     </div>
 
     <div class="detalle-col">
@@ -538,6 +573,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
   document.getElementById('app').style.display = 'block';
   document.getElementById('btn-salir').textContent = iniciales(sesion.nombre, sesion.apellido);
   document.getElementById('btn-salir').title = `${sesion.nombre} ${sesion.apellido||''} — cerrar sesión`;
+  document.getElementById('mi-nombre').textContent = `${sesion.nombre||''} ${sesion.apellido||''}`.trim();
   iniciarApp();
 });
 
@@ -577,12 +613,14 @@ document.querySelectorAll('.vista-toggle button').forEach(btn => {
     vistaActual = btn.dataset.vista;
     document.body.classList.toggle('modo-kanban', vistaActual === 'kanban');
     document.body.classList.toggle('modo-ventas', vistaActual === 'ventas');
+    document.body.classList.toggle('modo-distribuidores', vistaActual === 'distribuidores');
     document.getElementById('detalle').classList.remove('modal-caso');
     document.getElementById('detalle').style.display = 'none';
     document.getElementById('sin-seleccion').style.display = 'flex';
     casoActivoId = null;
     if(vistaActual === 'kanban') renderKanban();
     if(vistaActual === 'ventas') cargarEmpresasEnvio();
+    if(vistaActual === 'distribuidores') cargarDistribuidores();
   });
 });
 document.getElementById('btn-refrescar-kanban').addEventListener('click', cargarCasos);
@@ -681,6 +719,108 @@ async function renderEmpresasAdmin(){
     await cargarEmpresasEnvio(true);
   });
 }
+
+// ---------- Distribuidores: existencias y ventas recientes ----------
+let distExistenciasCache = null;
+let distVentasCache = null;
+let distTabActiva = 'existencias';
+
+async function cargarDistribuidores(forzar){
+  if(!distExistenciasCache || forzar){
+    const { data, error } = await sb.rpc('fn_directorio_distribuidores_stock');
+    if(error){ console.error(error); distExistenciasCache = []; }
+    else distExistenciasCache = data || [];
+  }
+  if(!distVentasCache || forzar){
+    const { data, error } = await sb.rpc('fn_ventas_distribuidores_asesor', { p_dias: 30 });
+    if(error){ console.error(error); distVentasCache = []; }
+    else distVentasCache = data || [];
+  }
+  renderDistExistencias();
+  renderDistVentas();
+}
+
+function renderDistExistencias(filtro){
+  const cont = document.getElementById('dist-existencias');
+  const q = (filtro || '').toLowerCase();
+  let filas = distExistenciasCache || [];
+  if(q){
+    filas = filas.filter(d =>
+      (d.zona_estado_ciudad||'').toLowerCase().includes(q) ||
+      (Array.isArray(d.productos) && d.productos.some(p => (p.nombre||'').toLowerCase().includes(q)))
+    );
+  }
+  if(!filas.length){ cont.innerHTML = '<div class="vacio-lista">No hay existencias que coincidan.</div>'; return; }
+
+  const porEstado = {};
+  filas.forEach(d => {
+    const estado = (String(d.zona_estado_ciudad||'').split(',')[0] || 'Sin estado').trim();
+    (porEstado[estado] = porEstado[estado] || []).push(d);
+  });
+
+  cont.innerHTML = Object.keys(porEstado).sort((a,b)=>a.localeCompare(b,'es')).map(estado => `
+    <div class="dist-bloque-estado">
+      <h4>${escapeHtml(estado)}</h4>
+      ${porEstado[estado].map(d => `
+        <div class="dist-tarjeta">
+          <div class="dt-nombre"><span>${escapeHtml((d.nombre||'')+' '+(d.apellido||''))}</span></div>
+          <div class="dt-zona">${escapeHtml(d.zona_estado_ciudad||'')}${d.telefono_whatsapp ? ' · '+escapeHtml(d.telefono_whatsapp) : ''}</div>
+          <ul class="dt-productos">
+            ${(d.productos||[]).map(p => `<li><span>${escapeHtml(p.nombre)}</span><b>${escapeHtml(p.cantidad)} disp.</b></li>`).join('') || '<li><span>Sin productos con stock</span></li>'}
+          </ul>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderDistVentas(filtro){
+  const cont = document.getElementById('dist-ventas');
+  const q = (filtro || '').toLowerCase();
+  let filas = distVentasCache || [];
+  if(q){
+    filas = filas.filter(v =>
+      (v.zona_estado_ciudad||'').toLowerCase().includes(q) ||
+      (v.producto_nombre||'').toLowerCase().includes(q) ||
+      (v.distribuidor_nombre||'').toLowerCase().includes(q)
+    );
+  }
+  if(!filas.length){ cont.innerHTML = '<div class="vacio-lista">Sin ventas en los últimos 30 días.</div>'; return; }
+
+  cont.innerHTML = filas.map(v => `
+    <div class="dist-venta-fila">
+      <div class="dv-izq">
+        <b>${escapeHtml(v.producto_nombre||'')}</b>
+        <span>${escapeHtml(v.distribuidor_nombre||'')} · ${escapeHtml(v.zona_estado_ciudad||'')}</span>
+      </div>
+      <div class="dv-der">
+        ${v.cantidad ?? ''} u. ${v.precio_unitario != null ? '· $'+Number(v.precio_unitario).toFixed(2) : ''}
+        <span>${v.fecha_venta ? new Date(v.fecha_venta).toLocaleDateString('es-VE') : ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.querySelectorAll('.dist-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dist-tabs button').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    distTabActiva = btn.dataset.distTab;
+    document.getElementById('dist-existencias').style.display = distTabActiva === 'existencias' ? 'block' : 'none';
+    document.getElementById('dist-ventas').style.display = distTabActiva === 'ventas' ? 'block' : 'none';
+    document.getElementById('dist-buscar').value = '';
+  });
+});
+
+let distBuscarDebounce = null;
+document.getElementById('dist-buscar').addEventListener('input', (e) => {
+  clearTimeout(distBuscarDebounce);
+  const q = e.target.value.trim();
+  distBuscarDebounce = setTimeout(() => {
+    if(distTabActiva === 'existencias') renderDistExistencias(q);
+    else renderDistVentas(q);
+  }, 250);
+});
 
 let ventasDebounce = null;
 document.getElementById('ventas-buscar').addEventListener('input', (e) => {
@@ -1177,6 +1317,7 @@ function iniciarApp(){
       document.getElementById('login').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       document.getElementById('btn-salir').textContent = iniciales(sesion.nombre, sesion.apellido);
+      document.getElementById('mi-nombre').textContent = `${sesion.nombre||''} ${sesion.apellido||''}`.trim();
       iniciarApp();
     }
   }
