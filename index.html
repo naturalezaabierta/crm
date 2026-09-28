@@ -356,6 +356,7 @@
 
 <!-- ============ APP ============ -->
 <div id="app">
+  <script>if(new URLSearchParams(location.search).has("demo")) document.write('<div style="background:#8A6A1D;color:#fff;text-align:center;font:700 .78rem sans-serif;padding:5px;">MODO DEMO — datos de ejemplo, nada se guarda ni se envía</div>');</script>
   <div class="shell">
     <nav class="nav">
       <img src="https://www.naturalezaabierta.com/wp-content/uploads/2026/03/cropped-cropped-solo-logo-WEB2.png" alt="">
@@ -508,7 +509,109 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const WEBHOOK_ENVIAR_MENSAJE = 'https://hook.us2.make.com/muj9mmxn67vpl5gwhu595u98h20j241q';
 const POLL_MS = 6000;
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ---------- MODO DEMO: abre el archivo con ?demo=1 al final de la dirección ----------
+// No toca Supabase ni WhatsApp: todo son datos de ejemplo en memoria.
+const DEMO = new URLSearchParams(location.search).has('demo');
+
+function crearSbDemo(){
+  const ago = (min) => new Date(Date.now() - min*60000).toISOString();
+  const YO = 'a1';
+  const T = {
+    asesores: [
+      { id:'a1', nombre:'Usa', apellido:'Cell', activo:true },
+      { id:'a2', nombre:'María', apellido:'Pérez', activo:true }
+    ],
+    permisos_area: [{ usuario_id:'a1', area:'pedidos_envios', nivel:'editar' }],
+    empresas_envio: [
+      { id:'e1', nombre:'MRW', url_buscador:'https://www.mrw.com.ve', activo:true, orden:1 },
+      { id:'e2', nombre:'Zoom', url_buscador:'https://www.zoom.red', activo:true, orden:2 },
+      { id:'e3', nombre:'Tealca', url_buscador:'https://www.tealca.com', activo:true, orden:3 }
+    ],
+    casos_atencion: [
+      { id:'c1', cliente_telefono:'+58 414 555 0101', motivo:'¿Cuándo llega mi pedido?', estado:'Nuevo', asesor_id:null, creado_en:ago(25) },
+      { id:'c2', cliente_telefono:'+58 424 555 0202', motivo:'Quiero comprar 2 frascos', estado:'Nuevo', asesor_id:null, creado_en:ago(4) },
+      { id:'c3', cliente_telefono:'+58 412 555 0303', motivo:'Pago móvil no reflejado', estado:'En atención', asesor_id:YO, creado_en:ago(90) },
+      { id:'c4', cliente_telefono:'+58 416 555 0404', motivo:'Cambio de dirección de envío', estado:'Esperando cliente', asesor_id:'a2', creado_en:ago(300) },
+      { id:'c5', cliente_telefono:'+58 426 555 0505', motivo:'Consulta de precios', estado:'Cerrado', asesor_id:YO, creado_en:ago(1500), cerrado_en:ago(1400), convertido_venta:true }
+    ],
+    mensajes_caso: [
+      { caso_id:'c1', remitente:'cliente', contenido:'Hola, hice un pedido el lunes y no me ha llegado', creado_en:ago(26) },
+      { caso_id:'c1', remitente:'valentina', contenido:'Hola, con gusto te ayudo. Te paso con un asesor para revisar tu envío.', creado_en:ago(25) },
+      { caso_id:'c3', remitente:'cliente', contenido:'Ya hice el pago móvil, te envío el comprobante', creado_en:ago(92) },
+      { caso_id:'c3', remitente:'asesor', contenido:'Recibido, lo estoy verificando.', creado_en:ago(88) }
+    ],
+    notas_caso: [{ caso_id:'c3', asesor_id:YO, nota:'Cliente pagó desde Banesco, verificar referencia.', creado_en:ago(85) }]
+  };
+  const VENTAS = [
+    { compra_id:'C-1042', nombre:'Carla', apellido:'Rodríguez', producto:'Tintura Calma 60ml', monto:18, moneda:'USD', estado_compra:'Pagado', telefono_envio:'+58 414 555 0101', direccion_envio:'Av. Bolívar, Edif. Sol, Apto 4B', ciudad_envio:'Valencia', provincia_envio:'Carabobo', pais_envio:'Venezuela', oficina_envio:'MRW Valencia Centro', estado_envio:'Enviado', numero_guia:'MRW-88231907' },
+    { compra_id:'C-1043', nombre:'José', apellido:'Márquez', producto:'Kit Bienestar (3 frascos)', monto:45, moneda:'USD', estado_compra:'Pagado', telefono_envio:'+58 412 555 0303', direccion_envio:'Calle 5, Casa 12', ciudad_envio:'Maracaibo', provincia_envio:'Zulia', pais_envio:'Venezuela', estado_envio:'En preparación', numero_guia:null },
+    { compra_id:'C-1044', nombre:'Ana', apellido:'Fernández', producto:'Tintura Calma 60ml', monto:18, moneda:'USD', estado_compra:'Pendiente de pago', estado_envio:'Pendiente', numero_guia:null }
+  ];
+  const RPC = {
+    fn_listar_empresas_envio_asesor: () => T.empresas_envio.filter(e => e.activo),
+    fn_buscar_ventas: (a) => VENTAS.filter(v => JSON.stringify(v).toLowerCase().includes((a.p_query||'').toLowerCase())),
+    fn_actualizar_estado_pedido_asesor: (a) => { const v = VENTAS.find(x => x.compra_id === a.p_compra_id); if(v) v.estado_envio = a.p_estado_envio; return true; },
+    fn_ficha_cliente: () => ({ encontrado:true,
+      cliente:{ nombre:'Carla', apellido:'Rodríguez', numero_cedula:'V-12345678', zona_estado_ciudad:'Carabobo, Valencia', etapa_cliente:'Cliente recurrente' },
+      afiliado:{ codigo_propio:'CARLA10', ventas_referidas_totales:3, saldo_acumulado:12 },
+      compras: VENTAS.slice(0,2).map(v => ({ producto:v.producto, monto:v.monto, moneda:v.moneda, estado_compra:v.estado_compra, estado_envio:v.estado_envio, numero_guia:v.numero_guia })) }),
+    fn_catalogo_referencia_asesor: () => ({
+      productos:[ { nombre:'Tintura Calma 60ml', precio:18, moneda:'USD' }, { nombre:'Kit Bienestar (3 frascos)', precio:45, moneda:'USD' }, { nombre:'Infusión Relax 30 sobres', precio:12, moneda:'USD' } ],
+      eventos:[ { nombre:'Retiro de bienestar', fecha:'15 nov', precio:80, moneda:'USD' } ] }),
+    fn_historial_caso_asesor: () => [
+      { accion:'INSERT', ocurrido_en:ago(95) },
+      { asesor_anterior_id:null, asesor_nuevo_id:YO, asesor_nuevo_nombre:'Usa Cell', ocurrido_en:ago(90) } ],
+    fn_directorio_distribuidores_stock: () => [
+      { nombre:'Luis', apellido:'Gómez', zona_estado_ciudad:'Zulia, Maracaibo', telefono_whatsapp:'+58 414 555 0900', productos:[ { nombre:'Tintura Calma 60ml', cantidad:24 }, { nombre:'Infusión Relax 30 sobres', cantidad:10 } ] },
+      { nombre:'Rosa', apellido:'Díaz', zona_estado_ciudad:'Lara, Barquisimeto', telefono_whatsapp:'+58 424 555 0901', productos:[ { nombre:'Kit Bienestar (3 frascos)', cantidad:6 } ] } ],
+    fn_ventas_distribuidores_asesor: () => [
+      { producto_nombre:'Tintura Calma 60ml', distribuidor_nombre:'Luis Gómez', zona_estado_ciudad:'Zulia, Maracaibo', cantidad:5, precio_unitario:15, fecha_venta:ago(2000) },
+      { producto_nombre:'Kit Bienestar (3 frascos)', distribuidor_nombre:'Rosa Díaz', zona_estado_ciudad:'Lara, Barquisimeto', cantidad:2, precio_unitario:38, fecha_venta:ago(5000) } ]
+  };
+  function tabla(nombre){
+    const q = { op:'select', filtros:[], orden:null, lim:null, patch:null, fila:null, uno:false };
+    const b = {
+      select(){ return b; },
+      update(patch){ q.op='update'; q.patch=patch; return b; },
+      insert(fila){ q.op='insert'; q.fila=fila; return b; },
+      delete(){ q.op='delete'; return b; },
+      eq(c,v){ q.filtros.push(r => r[c] === v); return b; },
+      is(c,v){ q.filtros.push(r => (r[c] ?? null) === v); return b; },
+      order(c,o){ if(!q.orden) q.orden={c, asc: !o || o.ascending !== false}; return b; },
+      limit(n){ q.lim=n; return b; },
+      maybeSingle(){ q.uno=true; return b; },
+      then(ok, ko){
+        const rows = T[nombre] = T[nombre] || [];
+        let res;
+        if(q.op === 'insert'){ rows.push({ id:'d'+Math.random().toString(36).slice(2,7), creado_en:new Date().toISOString(), activo:true, ...q.fila }); res = null; }
+        else {
+          const hit = rows.filter(r => q.filtros.every(f => f(r)));
+          if(q.op === 'update'){ hit.forEach(r => Object.assign(r, q.patch)); res = null; }
+          else if(q.op === 'delete'){ T[nombre] = rows.filter(r => !hit.includes(r)); res = null; }
+          else {
+            let out = hit.slice();
+            if(q.orden) out.sort((x,y) => (x[q.orden.c] > y[q.orden.c] ? 1 : -1) * (q.orden.asc ? 1 : -1));
+            if(q.lim) out = out.slice(0, q.lim);
+            res = q.uno ? (out[0] || null) : out;
+          }
+        }
+        return Promise.resolve({ data:res, error:null }).then(ok, ko);
+      }
+    };
+    return b;
+  }
+  return {
+    auth:{
+      getSession: async () => ({ data:{ session:{ user:{ id:YO } } } }),
+      signInWithPassword: async () => ({ data:{ user:{ id:YO } }, error:null }),
+      signOut: async () => ({})
+    },
+    from: tabla,
+    rpc: async (fn, args) => ({ data: RPC[fn] ? RPC[fn](args||{}) : null, error:null })
+  };
+}
+
+const sb = DEMO ? crearSbDemo() : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let sesion = null;      // { id, email, nombre, apellido }
 let tabActual = 'nuevo';
@@ -537,7 +640,7 @@ function iniciales(nombre, apellido){
   return ((nombre||'?')[0] + ((apellido||'')[0] || '')).toUpperCase();
 }
 function escapeHtml(s){
-  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // ---------- login ----------
@@ -1191,6 +1294,7 @@ async function enviarMensaje(){
   renderMensajes();
 
   try{
+    if(DEMO){ btn.disabled = false; return; }
     await fetch(WEBHOOK_ENVIAR_MENSAJE, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
